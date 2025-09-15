@@ -5,7 +5,7 @@ pub mod bfs {
         path::PathBuf,
         sync::mpsc::Sender,
     };
-    pub fn bfs_search(origin_path: PathBuf, sender: Sender<DirEntry>) {
+    pub fn bfs_search(origin_path: PathBuf, path_sender: Sender<PathBuf>) {
         let mut directories_list = VecDeque::with_capacity(30);
 
         directories_list.push_back(origin_path);
@@ -21,7 +21,7 @@ pub mod bfs {
 
             read_result.for_each(|f| match f {
                 Ok(entry) => {
-                    entry_distinction(entry, &sender, &mut directories_list);
+                    entry_distinction(entry, &path_sender, &mut directories_list);
                     println!("imported {}", path.to_str().unwrap());
                 }
                 Err(e) => eprintln!("can't read {}: {}", path.to_str().unwrap(), e),
@@ -30,7 +30,7 @@ pub mod bfs {
     }
     fn entry_distinction(
         entry: DirEntry,
-        sender: &Sender<DirEntry>,
+        sender: &Sender<PathBuf>,
         directories_list: &mut VecDeque<PathBuf>,
     ) {
         let file_type = match entry.file_type() {
@@ -46,7 +46,7 @@ pub mod bfs {
             return;
         }
 
-        sender.send(entry).unwrap();
+        sender.send(entry.path().to_path_buf()).unwrap();
     }
 }
 pub mod dfs {
@@ -56,7 +56,7 @@ pub mod dfs {
         sync::mpsc::Sender,
     };
 
-    pub fn dfs_search(origin_path: PathBuf, sender: &Sender<DirEntry>) {
+    pub fn dfs_search(origin_path: PathBuf, path_sender: &Sender<PathBuf>) {
         let read_result = match read_dir(&origin_path) {
             Ok(r) => r,
             Err(e) => {
@@ -66,13 +66,13 @@ pub mod dfs {
         };
         read_result.for_each(|f| match f {
             Ok(entry) => {
-                entry_distinction(entry, sender);
+                entry_distinction(entry, path_sender);
                 println!("imported {}", origin_path.to_str().unwrap());
             }
             Err(e) => eprintln!("can't read {}: {}", origin_path.to_str().unwrap(), e),
         });
     }
-    fn entry_distinction(entry: DirEntry, sender: &Sender<DirEntry>) {
+    fn entry_distinction(entry: DirEntry, path_sender: &Sender<PathBuf>) {
         let file_type = match entry.file_type() {
             Ok(file_type) => file_type,
             Err(e) => {
@@ -81,9 +81,10 @@ pub mod dfs {
             }
         };
         if file_type.is_dir() {
-            dfs_search(entry.path(), sender);
+            dfs_search(entry.path(), path_sender);
             return;
         }
-        sender.send(entry).unwrap();
+
+        path_sender.send(entry.path().to_path_buf()).unwrap();
     }
 }
