@@ -1,43 +1,59 @@
 use std::{
     fs::File,
-    hash::Hasher,
-    io::{BufRead, BufReader, Read},
+    io::{BufReader, Read},
     path::PathBuf,
 };
-
+pub struct HashDetails {
+    file_path: PathBuf,
+    hash: String,
+}
+impl HashDetails {
+    pub fn path(&self) -> &PathBuf {
+        &self.file_path
+    }
+    pub fn name(&self) -> &str {
+        self.file_path.file_name().unwrap().to_str().unwrap()
+    }
+    pub fn hash(&self) -> &str {
+        &self.hash
+    }
+}
 #[derive(Debug)]
+pub enum SearchAlgorithm {
+    BFS,
+    DFS,
+}
 pub struct SearchOptions {
     hash_type: HashTypes,
-    include_name: bool,
-    include_raw: bool,
     desired_directory: PathBuf,
+    search_algorithm: SearchAlgorithm,
 }
+
 impl SearchOptions {
-    pub fn hash_typd(&self) -> HashTypes {
-        self.hash_type.clone()
+    pub fn get_search_type(&self) -> &SearchAlgorithm {
+        &self.search_algorithm
+    }
+    pub fn get_hash_type(&self) -> &HashTypes {
+        &self.hash_type
+    }
+    pub fn set_search(&mut self, search_algorithm: SearchAlgorithm) {
+        self.search_algorithm = search_algorithm;
     }
     pub fn new() -> Self {
         Self {
             hash_type: HashTypes::BLAKE3,
-            include_name: true,
-            include_raw: true,
             desired_directory: "./".into(),
+            search_algorithm: SearchAlgorithm::DFS,
         }
     }
-    pub fn get_path(&self) -> PathBuf {
-        self.desired_directory.clone()
+    pub fn get_path(&self) -> &PathBuf {
+        &self.desired_directory
     }
     pub fn set_origin(&mut self, parent_path: &str) {
         self.desired_directory = parent_path.into();
     }
-    pub fn include_name(&mut self, name_stat: bool) {
-        self.include_name = name_stat;
-    }
-    pub fn include_raw(&mut self, raw_stat: bool) {
-        self.include_raw = raw_stat;
-    }
 
-    pub fn hash_type(&mut self, hash_type: HashTypes) {
+    pub fn set_hash_type(&mut self, hash_type: HashTypes) {
         self.hash_type = hash_type;
     }
 }
@@ -57,14 +73,19 @@ use xxhash_rust::xxh3::Xxh3;
 pub struct HashBuffer {
     buff_reader: BufReader<File>,
     buffer: [u8; 2_000],
+    file_path: PathBuf,
 }
 
 impl HashBuffer {
-    pub fn new(file_handle: File) -> HashBuffer {
-        HashBuffer {
-            buff_reader: BufReader::new(file_handle),
+    pub fn new(file_path: PathBuf) -> Result<HashBuffer, Box<dyn std::error::Error>> {
+        let file_handle = File::open(&file_path)?;
+
+        let buff_reader = BufReader::new(file_handle);
+        Ok(HashBuffer {
+            buff_reader,
             buffer: [0; 2_000],
-        }
+            file_path,
+        })
     }
 
     fn buffer_data(&mut self) -> Option<usize> {
@@ -74,34 +95,54 @@ impl HashBuffer {
         }
         return None;
     }
-    pub fn blake3_hash(&mut self) -> String {
+    pub fn blake3_hash(mut self) -> HashDetails {
         let mut hasher = blake3::Hasher::new();
         while let Some(n) = self.buffer_data() {
             hasher.update(&self.buffer[..n]);
         }
-        hasher.finalize().to_string()
+        HashDetails {
+            file_path: self.file_path,
+            hash: hasher.finalize().to_string(),
+        }
     }
-    pub fn xxh3_hash(&mut self) -> String {
+    pub fn xxh3_hash(mut self) -> HashDetails {
         let mut hasher = Xxh3::new();
         while let Some(n) = self.buffer_data() {
             hasher.update(&self.buffer[..n]);
         }
-        format!("{:x}", hasher.digest128())
+        HashDetails {
+            file_path: self.file_path,
+            hash: hasher.digest128().to_string(),
+        }
     }
-    pub fn md5_hash(&mut self) -> String {
+    pub fn md5_hash(mut self) -> HashDetails {
         let mut hasher = Md5::new();
         while let Some(n) = self.buffer_data() {
             hasher.update(&self.buffer[..n]);
         }
-        let result = hasher.finalize();
-        format!("{:x}", result)
+        HashDetails {
+            file_path: self.file_path,
+            hash: format!("{:x}", hasher.finalize()),
+        }
     }
-    pub fn sha1_hash(&mut self) -> String {
-        let mut hasher = sha1::Sha1::new();
+    pub fn sha1_hash(mut self) -> HashDetails {
+        let mut hasher = Sha1::new();
         while let Some(n) = self.buffer_data() {
             hasher.update(&self.buffer[..n]);
         }
-        let result = hasher.finalize();
-        format!("{:x}", result)
+        HashDetails {
+            file_path: self.file_path,
+            hash: format!("{:x}", hasher.finalize()),
+        }
+    }
+    pub fn sha256_hash(mut self) -> HashDetails {
+        let mut hasher = sha2::Sha256::new();
+        while let Some(n) = self.buffer_data() {
+            hasher.update(&self.buffer[..n]);
+        }
+        HashDetails {
+            file_path: self.file_path,
+            hash: format!("{:x}", hasher.finalize()),
+        }
     }
 }

@@ -21,7 +21,7 @@ pub mod bfs {
 
             read_result.for_each(|f| match f {
                 Ok(entry) => {
-                    entry_distinction(entry, &path_sender, &mut directories_list);
+                    entry_distinction(entry, path_sender.clone(), &mut directories_list);
                     println!("imported {}", path.to_str().unwrap());
                 }
                 Err(e) => eprintln!("can't read {}: {}", path.to_str().unwrap(), e),
@@ -30,7 +30,7 @@ pub mod bfs {
     }
     fn entry_distinction(
         entry: DirEntry,
-        sender: &Sender<PathBuf>,
+        sender: Sender<PathBuf>,
         directories_list: &mut VecDeque<PathBuf>,
     ) {
         let file_type = match entry.file_type() {
@@ -56,7 +56,7 @@ pub mod dfs {
         sync::mpsc::Sender,
     };
 
-    pub fn dfs_search(origin_path: PathBuf, path_sender: &Sender<PathBuf>) {
+    pub fn dfs_search(origin_path: PathBuf, path_sender: Sender<PathBuf>) {
         let read_result = match read_dir(&origin_path) {
             Ok(r) => r,
             Err(e) => {
@@ -66,13 +66,13 @@ pub mod dfs {
         };
         read_result.for_each(|f| match f {
             Ok(entry) => {
-                entry_distinction(entry, path_sender);
+                entry_distinction(entry, path_sender.clone());
                 println!("imported {}", origin_path.to_str().unwrap());
             }
             Err(e) => eprintln!("can't read {}: {}", origin_path.to_str().unwrap(), e),
         });
     }
-    fn entry_distinction(entry: DirEntry, path_sender: &Sender<PathBuf>) {
+    fn entry_distinction(entry: DirEntry, path_sender: Sender<PathBuf>) {
         let file_type = match entry.file_type() {
             Ok(file_type) => file_type,
             Err(e) => {
