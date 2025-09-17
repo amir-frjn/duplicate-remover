@@ -1,7 +1,7 @@
-use duplicate_remover::fc_generator::hasher::generate_cache;
-use duplicate_remover::fc_generator::models::SearchOptions;
+use duplicate_remover::fc_processor::operations::show_duplicates;
+use rusqlite::Result;
 
-fn main() {
-    let search_options = SearchOptions::new();
-    generate_cache(search_options).unwrap();
+fn main() -> Result<()> {
+    show_duplicates("files.db").unwrap();
+    Ok(())
 }

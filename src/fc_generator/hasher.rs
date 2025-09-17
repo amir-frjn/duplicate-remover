@@ -38,6 +38,7 @@ use mpsc::channel;
 use rusqlite::{Connection, params};
 fn save_hashes(hash_detail_receiver: Receiver<HashDetails>) -> Result<(), Box<dyn Error>> {
     let conn = Connection::open("files.db")?;
+    conn.execute("DROP TABLE IF EXISTS files", [])?;
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS files (
