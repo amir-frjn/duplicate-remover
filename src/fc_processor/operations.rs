@@ -24,7 +24,7 @@ pub fn show_duplicates(path: &str) -> Result<()> {
             println!("│└─ Path: {}", path.color(BrightBlack));
             println!("│");
         });
-        println!("Repetitions: {line_counter}\n");
+        println!("Repetitions: {line_counter}\n\n");
     }
     Ok(())
 }
