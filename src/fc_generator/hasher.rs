@@ -37,7 +37,8 @@ use crate::fc_generator::explore::{bfs, dfs};
 use mpsc::channel;
 use rusqlite::{Connection, params};
 fn save_hashes(hash_detail_receiver: Receiver<HashDetails>) -> Result<(), Box<dyn Error>> {
-    let conn = Connection::open("files.db")?;
+    let mut conn = Connection::open("files.db")?;
+
     conn.execute("DROP TABLE IF EXISTS files", [])?;
 
     conn.execute(
@@ -49,11 +50,12 @@ fn save_hashes(hash_detail_receiver: Receiver<HashDetails>) -> Result<(), Box<dy
         )",
         [],
     )?;
+    let tx = conn.transaction()?;
     for hash_details in hash_detail_receiver {
         let path = hash_details.path().to_str();
         let name = hash_details.name();
         let hash = hash_details.hash();
-        let result = conn.execute(
+        let result = tx.execute(
             "INSERT INTO files (path, name, hash) VALUES (?1, ?2, ?3)",
             params![path, name, hash],
         );
@@ -61,10 +63,22 @@ fn save_hashes(hash_detail_receiver: Receiver<HashDetails>) -> Result<(), Box<dy
             eprintln!("can't write to database: {}", e);
         }
     }
+
+    tx.execute(
+        "DELETE FROM files
+         WHERE hash IN (
+             SELECT hash
+             FROM files
+             GROUP BY hash
+             HAVING COUNT(*) = 1
+         )",
+        [],
+    )?;
+    tx.commit()?;
     Ok(())
 }
 pub fn generate_cache(search_options: SearchOptions) -> Result<(), Box<dyn Any + Send + 'static>> {
-    let origin_path = search_options.get_path().clone();
+    let origin_path = search_options.get_origin().clone();
     let hash_type = search_options.get_hash_type().clone();
     let search = match search_options.get_search_type() {
         SearchAlgorithm::BFS => bfs::bfs_search,

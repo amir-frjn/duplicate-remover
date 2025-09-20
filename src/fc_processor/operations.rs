@@ -1,4 +1,12 @@
-use colored::{Color::BrightBlack, Colorize};
+use std::{
+    fs,
+    io::{Read, Stdin, Write, stdout},
+};
+
+use colored::{
+    Color::{self, BrightBlack},
+    Colorize,
+};
 use rusqlite::{Connection, Result, params};
 pub fn show_duplicates(db_path: &str) -> Result<()> {
     let connection = Connection::open(db_path)?;
@@ -33,6 +41,7 @@ pub fn show_duplicates(db_path: &str) -> Result<()> {
     }
     Ok(())
 }
+
 pub fn remove_by_hash(db_path: &str, hash: &str) -> Result<()> {
     let connection = Connection::open(db_path)?;
     let mut statement = connection.prepare(
@@ -49,16 +58,36 @@ pub fn remove_by_hash(db_path: &str, hash: &str) -> Result<()> {
     let rows = statement.query_map(params![hash], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
     })?;
-
     let mut n = 0u16;
+    let mut answer = String::new();
+    let mut stdin = std::io::stdin();
+    let mut stdout = stdout();
     for r in rows {
         n += 1;
         let (path, name) = r?;
-        println!("{n} ─┬─ {name}");
-        println!("   └─ {}\n", path.color(BrightBlack));
+        println!("{n} ─┬─ name: {name}");
+        print!("   └─ path: {}", path.color(BrightBlack));
+        println!("Remove? (N, y) ");
+        stdout.flush().unwrap();
+
+        if answer != "y" && answer != "Y" {
+            println!("{}", "Kept".color(Color::Green));
+            continue;
+        }
+        if let Err(e) = fs::remove_file(&path) {
+            eprintln!("Couldn't remove: {}", e);
+        } else if let Err(e) =
+            connection.execute("DELETE FROM files WHERE path = ?1", params![path])
+        {
+            eprintln!(
+                "Couldn't remove it from database(regenerate it later) : {}",
+                e
+            );
+        }
+        println!("{}", "Removed".color(Color::Red));
     }
     if n < 2 {
-        println!("No duplicate files were found with the given hash!");
+        eprintln!("No duplicate files were found with the given hash!");
         return Ok(());
     }
 

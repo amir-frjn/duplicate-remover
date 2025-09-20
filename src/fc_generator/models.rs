@@ -43,14 +43,14 @@ impl SearchOptions {
         Self {
             hash_type: HashTypes::BLAKE3,
             desired_directory: "./".into(),
-            search_algorithm: SearchAlgorithm::DFS,
+            search_algorithm: SearchAlgorithm::BFS,
         }
     }
-    pub fn get_path(&self) -> &PathBuf {
+    pub fn get_origin(&self) -> &PathBuf {
         &self.desired_directory
     }
-    pub fn set_origin(&mut self, parent_path: &str) {
-        self.desired_directory = parent_path.into();
+    pub fn set_origin(&mut self, origin_path: &str) {
+        self.desired_directory = origin_path.into();
     }
 
     pub fn set_hash_type(&mut self, hash_type: HashTypes) {
@@ -72,7 +72,7 @@ use sha1::Sha1;
 use xxhash_rust::xxh3::Xxh3;
 pub struct HashBuffer {
     buff_reader: BufReader<File>,
-    buffer: [u8; 2_000],
+    buffer: [u8; 20_000],
     file_path: PathBuf,
 }
 
@@ -83,7 +83,7 @@ impl HashBuffer {
         let buff_reader = BufReader::new(file_handle);
         Ok(HashBuffer {
             buff_reader,
-            buffer: [0; 2_000],
+            buffer: [0; 20_000],
             file_path,
         })
     }
