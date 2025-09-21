@@ -36,8 +36,9 @@ impl SearchOptions {
     pub fn get_hash_type(&self) -> &HashTypes {
         &self.hash_type
     }
-    pub fn set_search(&mut self, search_algorithm: SearchAlgorithm) {
+    pub fn set_search(mut self, search_algorithm: SearchAlgorithm) -> Self {
         self.search_algorithm = search_algorithm;
+        self
     }
     pub fn new() -> Self {
         Self {
@@ -49,12 +50,14 @@ impl SearchOptions {
     pub fn get_origin(&self) -> &PathBuf {
         &self.desired_directory
     }
-    pub fn set_origin(&mut self, origin_path: &str) {
+    pub fn set_origin(mut self, origin_path: &str) -> Self {
         self.desired_directory = origin_path.into();
+        self
     }
 
-    pub fn set_hash_type(&mut self, hash_type: HashTypes) {
+    pub fn set_hash_type(mut self, hash_type: HashTypes) -> Self {
         self.hash_type = hash_type;
+        self
     }
 }
 #[derive(Debug, Clone)]

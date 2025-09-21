@@ -109,7 +109,7 @@ pub fn remove_by_hash(db_path: &str, hash: &str) -> Result<()> {
         println!("│");
     }
     if n < 2 {
-        eprintln!("└ No duplicate files were found with the given hash!");
+        eprintln!("No duplicate files were found with the given hash!");
         return Ok(());
     }
     print!("{}: {}", "Removed".color(Red), n - dup_count,);
@@ -133,7 +133,6 @@ pub fn remove_all(db_path: &str) -> Result<()> {
     for hash_result in hashes {
         let hash = hash_result?;
         remove_by_hash(db_path, &hash)?;
-        // Do whatever you need with `hash`
     }
     Ok(())
 }

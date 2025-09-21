@@ -13,4 +13,5 @@ twox-hash = "2.1.2"
 xxhash-rust = { version = "=0.8.15", features = ["xxh3"] }
 rusqlite = { version = "0.31", features = ["bundled"] }
 colored = "3.0.0"
+clap = "4.5.48"
 

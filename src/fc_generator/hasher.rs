@@ -1,5 +1,4 @@
 use std::{
-    any::Any,
     error::Error,
     path::PathBuf,
     sync::mpsc::{self, Receiver, Sender},
@@ -77,7 +76,7 @@ fn save_hashes(hash_detail_receiver: Receiver<HashDetails>) -> Result<(), Box<dy
     tx.commit()?;
     Ok(())
 }
-pub fn generate_cache(search_options: SearchOptions) -> Result<(), Box<dyn Any + Send + 'static>> {
+pub fn generate_cache(search_options: SearchOptions) -> Result<(), Box<dyn std::error::Error>> {
     let origin_path = search_options.get_origin().clone();
     let hash_type = search_options.get_hash_type().clone();
     let search = match search_options.get_search_type() {
@@ -96,8 +95,14 @@ pub fn generate_cache(search_options: SearchOptions) -> Result<(), Box<dyn Any +
         }
     });
 
-    search_handle.join()?;
-    read_file_handle.join()?;
-    save_hashes_handle.join()?;
+    if let Err(e) = search_handle.join() {
+        return Err(format!("Search thread panicked: {:?}", e).into());
+    }
+    if let Err(e) = read_file_handle.join() {
+        return Err(format!("Read file thread panicked: {:?}", e).into());
+    }
+    if let Err(e) = save_hashes_handle.join() {
+        return Err(format!("Save hashes thread panicked: {:?}", e).into());
+    }
     Ok(())
 }
