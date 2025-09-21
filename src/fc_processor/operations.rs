@@ -1,16 +1,16 @@
 use std::{
     fs,
-    io::{Read, Stdin, Write, stdout},
+    io::{Write, stdout},
 };
 
 use colored::{
-    Color::{self, BrightBlack},
+    Color::{self, BrightBlack, Green, Red, Yellow},
     Colorize,
 };
 use rusqlite::{Connection, Result, params};
 pub fn show_duplicates(db_path: &str) -> Result<()> {
-    let connection = Connection::open(db_path)?;
-    let mut statement = connection.prepare(
+    let database = Connection::open(db_path)?;
+    let mut statement = database.prepare(
         "SELECT hash,
             GROUP_CONCAT(path, '|'),
             GROUP_CONCAT(name, '|')
@@ -43,8 +43,8 @@ pub fn show_duplicates(db_path: &str) -> Result<()> {
 }
 
 pub fn remove_by_hash(db_path: &str, hash: &str) -> Result<()> {
-    let connection = Connection::open(db_path)?;
-    let mut statement = connection.prepare(
+    let database = Connection::open(db_path)?;
+    let mut statement = database.prepare(
         "SELECT path, name
      FROM files
      WHERE hash = ?1
@@ -55,43 +55,86 @@ pub fn remove_by_hash(db_path: &str, hash: &str) -> Result<()> {
            HAVING COUNT(*) > 1
        )",
     )?;
+
     let rows = statement.query_map(params![hash], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
     })?;
-    let mut n = 0u16;
+    let mut dup_count: u32 = database.query_row(
+        "SELECT COUNT(*)
+       FROM files
+      WHERE hash = ?1",
+        params![hash],
+        |row| row.get(0),
+    )?;
+    let mut n = 0u32;
     let mut answer = String::new();
-    let mut stdin = std::io::stdin();
+    let stdin = std::io::stdin();
     let mut stdout = stdout();
+    println!("Hash: {}", hash);
+    println!("│");
     for r in rows {
         n += 1;
         let (path, name) = r?;
-        println!("{n} ─┬─ name: {name}");
-        print!("   └─ path: {}", path.color(BrightBlack));
-        println!("Remove? (N, y) ");
+        println!("│ {n} ─┬─ name: {name}");
+        println!("│    └─ path: {}", path.color(BrightBlack));
+        if dup_count == 1 {
+            println!("│{}", "Warning: This file is now unique.".color(Yellow));
+        }
+        print!("│ Remove ? ({}, {}) ", "N".color(Green), "y".color(Red));
         stdout.flush().unwrap();
+        answer.clear();
+        stdin.read_line(&mut answer).unwrap();
 
-        if answer != "y" && answer != "Y" {
-            println!("{}", "Kept".color(Color::Green));
+        if answer.trim() != "y" && answer != "Y" {
+            println!("│ {}", "Kept".color(Color::Green));
+            println!("│");
             continue;
         }
         if let Err(e) = fs::remove_file(&path) {
-            eprintln!("Couldn't remove: {}", e);
-        } else if let Err(e) =
-            connection.execute("DELETE FROM files WHERE path = ?1", params![path])
+            eprintln!("│ Couldn't remove: {}", e);
+        } else if let Err(e) = database.execute("DELETE FROM files WHERE path = ?1", params![path])
         {
             eprintln!(
-                "Couldn't remove it from database(regenerate it later) : {}",
+                "│ Couldn't remove it from database(regenerate it later) : {}",
                 e
             );
         }
-        println!("{}", "Removed".color(Color::Red));
+        dup_count -= 1;
+        if dup_count == 0 {
+            print!("└");
+        } else {
+            print!("│");
+        }
+        println!("{}", " Removed".color(Color::Red));
+        println!("│");
     }
     if n < 2 {
-        eprintln!("No duplicate files were found with the given hash!");
+        eprintln!("└ No duplicate files were found with the given hash!");
         return Ok(());
     }
-
+    print!("{}: {}", "Removed".color(Red), n - dup_count,);
+    println!(" , {}: {}", "Kept".color(Green), n);
+    println!("");
     Ok(())
 }
+pub fn remove_all(db_path: &str) -> Result<()> {
+    let database = Connection::open(db_path)?;
+    let mut statement = database.prepare(
+        "SELECT hash
+       FROM files
+      GROUP BY hash
+     HAVING COUNT(*) > 1",
+    )?;
 
+    let hashes: Vec<Result<String, rusqlite::Error>> = statement
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect();
+
+    for hash_result in hashes {
+        let hash = hash_result?;
+        remove_by_hash(db_path, &hash)?;
+        // Do whatever you need with `hash`
+    }
+    Ok(())
+}
 // pub fn
