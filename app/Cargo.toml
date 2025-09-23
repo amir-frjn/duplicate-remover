@@ -1,0 +1,9 @@
+[package]
+name = "my_app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fc_generator = { path = "../fc_generator" }
+fc_processor = { path = "../fc_processor" }
+clap = "4.5.48"

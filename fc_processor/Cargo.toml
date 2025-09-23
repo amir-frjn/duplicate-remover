@@ -1,0 +1,8 @@
+[package]
+name = "fc_processor"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rusqlite = { version = "0.31", features = ["bundled"] }
+colored = "3.0.0"
