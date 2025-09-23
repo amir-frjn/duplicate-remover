@@ -3,6 +3,8 @@ use std::{
     io::{BufReader, Read},
     path::PathBuf,
 };
+
+/// An object to send and receive hashes data (path, hash) over channels
 pub struct HashDetails {
     file_path: PathBuf,
     hash: String,
@@ -18,11 +20,15 @@ impl HashDetails {
         &self.hash
     }
 }
+
 #[derive(Debug)]
+///Describes searching algorithm.
 pub enum SearchAlgorithm {
     BFS,
     DFS,
 }
+
+///An object to config searching and hashing algorithms
 pub struct SearchOptions {
     hash_type: HashTypes,
     desired_directory: PathBuf,
@@ -30,6 +36,14 @@ pub struct SearchOptions {
 }
 
 impl SearchOptions {
+    ///returns a sample with this preset:(hash: BLAKE3, path: ./, search: BFS)
+    pub fn new() -> Self {
+        Self {
+            hash_type: HashTypes::BLAKE3,
+            desired_directory: "./".into(),
+            search_algorithm: SearchAlgorithm::BFS,
+        }
+    }
     pub fn get_search_type(&self) -> &SearchAlgorithm {
         &self.search_algorithm
     }
@@ -39,13 +53,6 @@ impl SearchOptions {
     pub fn set_search(mut self, search_algorithm: SearchAlgorithm) -> Self {
         self.search_algorithm = search_algorithm;
         self
-    }
-    pub fn new() -> Self {
-        Self {
-            hash_type: HashTypes::BLAKE3,
-            desired_directory: "./".into(),
-            search_algorithm: SearchAlgorithm::BFS,
-        }
     }
     pub fn get_origin(&self) -> &PathBuf {
         &self.desired_directory
@@ -60,7 +67,9 @@ impl SearchOptions {
         self
     }
 }
+
 #[derive(Debug, Clone)]
+///Used to set hashing type
 pub enum HashTypes {
     SHA256,
     SHA1,
@@ -73,6 +82,7 @@ use blake3;
 use md5::{Digest, Md5};
 use sha1::Sha1;
 use xxhash_rust::xxh3::Xxh3;
+///This object buffers data(20KB) and generates a hash
 pub struct HashBuffer {
     buff_reader: BufReader<File>,
     buffer: [u8; 20_000],
@@ -82,8 +92,8 @@ pub struct HashBuffer {
 impl HashBuffer {
     pub fn new(file_path: PathBuf) -> Result<HashBuffer, Box<dyn std::error::Error>> {
         let file_handle = File::open(&file_path)?;
-
         let buff_reader = BufReader::new(file_handle);
+
         Ok(HashBuffer {
             buff_reader,
             buffer: [0; 20_000],
@@ -91,13 +101,6 @@ impl HashBuffer {
         })
     }
 
-    fn buffer_data(&mut self) -> Option<usize> {
-        let n = self.buff_reader.read(&mut self.buffer).unwrap();
-        if n > 0 {
-            return Some(n);
-        }
-        return None;
-    }
     pub fn blake3_hash(mut self) -> HashDetails {
         let mut hasher = blake3::Hasher::new();
         while let Some(n) = self.buffer_data() {
@@ -108,6 +111,7 @@ impl HashBuffer {
             hash: hasher.finalize().to_string(),
         }
     }
+
     pub fn xxh3_hash(mut self) -> HashDetails {
         let mut hasher = Xxh3::new();
         while let Some(n) = self.buffer_data() {
@@ -118,6 +122,7 @@ impl HashBuffer {
             hash: hasher.digest128().to_string(),
         }
     }
+
     pub fn md5_hash(mut self) -> HashDetails {
         let mut hasher = Md5::new();
         while let Some(n) = self.buffer_data() {
@@ -128,6 +133,7 @@ impl HashBuffer {
             hash: format!("{:x}", hasher.finalize()),
         }
     }
+
     pub fn sha1_hash(mut self) -> HashDetails {
         let mut hasher = Sha1::new();
         while let Some(n) = self.buffer_data() {
@@ -138,6 +144,7 @@ impl HashBuffer {
             hash: format!("{:x}", hasher.finalize()),
         }
     }
+
     pub fn sha256_hash(mut self) -> HashDetails {
         let mut hasher = sha2::Sha256::new();
         while let Some(n) = self.buffer_data() {
@@ -147,5 +154,13 @@ impl HashBuffer {
             file_path: self.file_path,
             hash: format!("{:x}", hasher.finalize()),
         }
+    }
+
+    fn buffer_data(&mut self) -> Option<usize> {
+        let n = self.buff_reader.read(&mut self.buffer).unwrap();
+        if n > 0 {
+            return Some(n);
+        }
+        return None;
     }
 }

@@ -1,5 +1,8 @@
+//! # app
+//!
+//! connects both fc_generator and fc_processor as a command line interface package
 use clap::{Arg, ArgMatches, Command};
-use fc_generator::models::{HashTypes, SearchAlgorithm, SearchOptions};
+use fc_generator::{HashTypes, SearchAlgorithm, SearchOptions};
 fn main() {
     let matches = clap::Command::new("rmdup")
         .about("Detects and Removes duplicate files")
@@ -48,6 +51,7 @@ fn main() {
     }
 }
 
+use fc_processor::operations;
 fn remove_duplicates(arg: &ArgMatches) {
     let hash = arg.get_one::<String>("by hash");
     if hash.is_none() {
@@ -60,13 +64,13 @@ fn remove_duplicates(arg: &ArgMatches) {
         eprintln!("An error occurred: {e}");
     };
 }
-use fc_processor::operations;
 fn show_duplicates() {
     if let Err(e) = operations::show_duplicates("files.db") {
         eprintln!("An error occurred: {e}");
     };
 }
-use fc_generator::hasher;
+
+use fc_generator::generate_cache as generate_cache_core;
 fn generate_cache(arg: &ArgMatches) {
     let origin_path = arg.get_one::<String>("origin").unwrap();
     let hash_type = arg.get_one::<String>("hash type").unwrap().to_lowercase();
@@ -98,7 +102,7 @@ fn generate_cache(arg: &ArgMatches) {
         .set_hash_type(hash_type)
         .set_origin(origin_path)
         .set_search(search_algorithm);
-    if let Err(e) = hasher::generate_cache(search_options) {
+    if let Err(e) = generate_cache_core(search_options) {
         eprintln!("An error occurred: {}", e);
     }
 }
