@@ -59,8 +59,7 @@ fn remove_duplicates(arg: &ArgMatches) {
             eprintln!("An error occurred: {e}");
             return;
         }
-    }
-    if let Err(e) = operations::remove_by_hash("files.db", hash.unwrap()) {
+    } else if let Err(e) = operations::remove_by_hash("files.db", hash.unwrap()) {
         eprintln!("An error occurred: {e}");
     };
 }

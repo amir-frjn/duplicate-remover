@@ -1,4 +1,3 @@
-
 use std::{
     fs,
     io::{Write, stdout},
@@ -8,7 +7,7 @@ use colored::{
     Color::{self, BrightBlack, Green, Red, Yellow},
     Colorize,
 };
-use rusqlite::{Connection, Result, params};
+use rusqlite::{Connection, Error, Result, params};
 
 ///Reads a database and shows duplicate files(in stdout)
 pub fn show_duplicates(db_path: &str) -> Result<()> {
@@ -149,12 +148,14 @@ pub fn remove_all(db_path: &str) -> Result<()> {
         HAVING COUNT(*) > 1",
     )?;
 
-    let hashes = statement.query_map([], |row| row.get::<_, String>(0))?;
+    let hashes: Vec<Result<String, Error>> = statement
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect();
 
     for hash_result in hashes {
         let hash = hash_result?;
         remove_by_hash(db_path, &hash)?;
     }
-    
+
     Ok(())
 }
