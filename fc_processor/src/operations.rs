@@ -132,7 +132,7 @@ pub fn remove_by_hash(db_path: &str, hash: &str) -> Result<()> {
         return Ok(());
     }
     print!("{}: {}", "Removed".color(Red), row_counter - dup_count,);
-    println!(" , {}: {}", "Kept".color(Green), row_counter);
+    println!(" , {}: {}", "Kept".color(Green), dup_count);
     println!("");
     Ok(())
 }
