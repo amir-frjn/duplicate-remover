@@ -1,6 +1,6 @@
 # duplicate-remover
 
-A full-featured Rust program that identifies and removes duplicate files and directories on your system.  
+A full-featured Rust program that identifies and removes duplicate files on your system.  
 
 At a glance:
 - Scans your system to discover files.
@@ -34,3 +34,4 @@ duplicate-remover rm
 duplicate-remover rm --hash <hash>
 duplicate-remover help
 ```
+
