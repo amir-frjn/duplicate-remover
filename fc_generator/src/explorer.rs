@@ -1,4 +1,3 @@
-
 pub mod bfs {
     ///This mod is for breadth first search algorithm and it's implementations
     use std::{
@@ -52,7 +51,6 @@ pub mod bfs {
             directories_list.push_back(entry.path());
             return;
         }
-        println!("imported {}", entry.path().to_str().unwrap());
 
         sender.send(entry.path().to_path_buf()).unwrap();
     }

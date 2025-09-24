@@ -101,7 +101,9 @@ fn save_hashes(hash_detail_receiver: Receiver<HashDetails>) -> Result<(), Box<dy
         );
         if let Err(e) = result {
             eprintln!("can't write to database: {}", e);
+            continue;
         }
+        println!("imported: {}", path.unwrap());
     }
 
     //remove unique files from database
