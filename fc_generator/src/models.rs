@@ -85,7 +85,7 @@ use xxhash_rust::xxh3::Xxh3;
 ///This object buffers data(20KB) and generates a hash
 pub struct HashBuffer {
     buff_reader: BufReader<File>,
-    buffer: [u8; 20_000],
+    buffer: [u8; 200_000],
     file_path: PathBuf,
 }
 
@@ -96,7 +96,7 @@ impl HashBuffer {
 
         Ok(HashBuffer {
             buff_reader,
-            buffer: [0; 20_000],
+            buffer: [0; 200_000],
             file_path,
         })
     }
